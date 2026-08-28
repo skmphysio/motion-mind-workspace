@@ -1,0 +1,53 @@
+name: Release
+
+# Publishing happens ONLY here, only from a tag, and only through OIDC trusted
+# publishing. There is no long-lived npm token in any developer environment.
+#
+# `publishConfig.provenance: true` means `npm publish` FAILS outside a supported
+# CI provider ("Automatic provenance generation not supported for provider:
+# null") — verified during the PR-0 rehearsal. That refusal is the protection,
+# so never pass --provenance=false here.
+
+on:
+  push:
+    tags: ['workspace-contracts@*']
+
+permissions:
+  contents: read
+  id-token: write   # required for provenance / trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish   # protected environment: reviewers configured in repo settings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      # The full gate set runs again on the exact tagged commit. A release never
+      # trusts an earlier green run.
+      - run: npm run gates
+
+      - name: Verify the tag matches the package version
+        run: |
+          TAG="${GITHUB_REF_NAME#workspace-contracts@}"
+          VER=$(node -p "require('./packages/workspace-contracts/package.json').version")
+          if [ "$TAG" != "$VER" ]; then
+            echo "Tag $TAG does not match package version $VER"; exit 1
+          fi
+
+      - name: Publish with provenance
+        run: npm publish
+        working-directory: packages/workspace-contracts
+
+      - name: Release-age reminder
+        run: |
+          echo "Published. Campus's bunfig minimumReleaseAge=86400 blocks this"
+          echo "version for 24 hours — verified in PR-0. Do not open the Campus"
+          echo "adoption PR until then; bun install will hard-fail."

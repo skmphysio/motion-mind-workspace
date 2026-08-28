@@ -1,0 +1,25 @@
+{
+  "name": "motion-mind-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck:campus": "tsc -p tsconfig.campus-strict.json",
+    "typecheck:motionmind": "tsc -p tsconfig.motionmind-loose.json",
+    "gates": "npm run build && npm run typecheck:campus && npm run typecheck:motionmind && npm run test && npm run check:contents",
+    "check:contents": "node scripts/check-package-contents.mjs packages/workspace-contracts"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "vitest": "2.1.9",
+    "publint": "0.3.14",
+    "@arethetypeswrong/cli": "0.18.2"
+  }
+}

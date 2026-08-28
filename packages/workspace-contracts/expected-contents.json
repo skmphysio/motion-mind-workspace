@@ -1,0 +1,14 @@
+{
+  "files": [
+    "README.md",
+    "package.json",
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/context.js",
+    "dist/context.d.ts",
+    "dist/preview.js",
+    "dist/preview.d.ts",
+    "dist/vocabulary.js",
+    "dist/vocabulary.d.ts"
+  ]
+}

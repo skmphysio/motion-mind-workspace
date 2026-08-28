@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+verification/*/node_modules/
+verification/*/package-lock.json
+verification/*/bun.lock
+verification/storage*/
+verification/htpasswd*
+verification/*.log
+.npmrc
