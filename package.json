@@ -1,27 +1,89 @@
 {
-  "name": "motion-mind-workspace",
-  "private": true,
+  "name": "@motionmind/workspace",
+  "version": "0.0.0-alpha.0",
+  "description": "The Motion Mind personal Workspace: shared contracts, data client, React bindings, companion and surfaces for Motion Mind and Motion Mind Campus.",
+  "license": "UNLICENSED",
   "type": "module",
-  "workspaces": [
-    "packages/*"
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts/index.d.ts",
+      "import": "./dist/contracts/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./companion": {
+      "types": "./dist/companion/index.d.ts",
+      "import": "./dist/companion/index.js"
+    },
+    "./surfaces": {
+      "types": "./dist/surfaces/index.d.ts",
+      "import": "./dist/surfaces/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skmphysio/motion-mind-workspace.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "engines": {
     "node": ">=20"
   },
+  "peerDependencies": {
+    "react": "^18.3.0 || ^19.0.0",
+    "react-dom": "^18.3.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "test": "vitest run --root . && npm run test --workspaces --if-present",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "test": "vitest run",
     "typecheck:campus": "tsc -p tsconfig.campus-strict.json",
     "typecheck:motionmind": "tsc -p tsconfig.motionmind-loose.json",
-    "gates": "npm run build && npm run typecheck:campus && npm run typecheck:motionmind && npm run test && npm run check:contents && npm run check:publint && npm run check:types-resolve",
-    "check:contents": "node scripts/check-package-contents.mjs packages/workspace-contracts",
-    "check:publint": "publint --pack npm packages/workspace-contracts",
-    "check:types-resolve": "attw --pack packages/workspace-contracts --ignore-rules cjs-resolves-to-esm"
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:contents": "node scripts/check-package-contents.mjs .",
+    "check:publint": "publint --pack npm",
+    "check:types-resolve": "attw --pack . --ignore-rules cjs-resolves-to-esm no-resolution",
+    "verify:consumers": "node scripts/verify-consumers.mjs",
+    "verify:lazy": "node scripts/verify-lazy-loading.mjs",
+    "gates": "npm run build && npm run typecheck:campus && npm run typecheck:motionmind && npm run test && npm run check:boundaries && npm run check:contents && npm run check:publint && npm run check:types-resolve && npm run verify:type-resolution",
+    "prepack": "npm run build",
+    "verify:type-resolution": "node scripts/verify-type-resolution.mjs",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "devDependencies": {
-    "typescript": "5.8.3",
-    "vitest": "2.1.9",
+    "@arethetypeswrong/cli": "0.18.5",
+    "@types/react": "^19.2.0",
     "publint": "0.3.24",
-    "@arethetypeswrong/cli": "0.18.5"
+    "react": "^19.2.0",
+    "typescript": "5.8.3",
+    "vite": "^5.4.19",
+    "vitest": "2.1.9"
   }
 }

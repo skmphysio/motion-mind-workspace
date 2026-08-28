@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["packages/*/src/**/*"],
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
     "noEmit": true,
     "declaration": false,
@@ -13,6 +15,11 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   }
 }

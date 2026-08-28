@@ -1,50 +1,67 @@
-# Motion Mind Workspace packages
+# @motionmind/workspace
 
-The single source for the **personal Workspace** — the individual's persistent layer across
-Motion Mind and Motion Mind Campus. Both applications consume these packages at exact pinned
-versions; neither keeps its own copy.
+The **Motion Mind Workspace** — the individual's own space in the ecosystem, built once and
+presented natively in both Motion Mind and Motion Mind Campus.
 
-| Package | Layer | Contains | May import |
-|---|---|---|---|
-| `@motionmind/workspace-contracts` | 1 | types, pure functions, shared behavioural rules | *nothing* |
-| `@motionmind/workspace-client` | 2 | data access, streaming, query-key factories | contracts |
-| `@motionmind/workspace-react` | 3 | React Query hooks binding Layer 2 to React | 1, 2 |
-| `@motionmind/workspace-companion` | 4 | the floating Mentor + Notebook companion | 1–3 |
-| `@motionmind/workspace-surfaces` | 5 | full-page Workspace surfaces | 1–4 |
+Workspace holds what belongs to the person rather than to an institution: Workspace Home, My
+Learning, Notebook, Mentor, Growth Book, Profile, CV Export, personal files, and account and
+credits. Institution-restricted Courses, Offerings, assignments and marks stay institution-governed
+and are not part of Workspace.
 
-Only `workspace-contracts` exists today (`0.0.0-alpha.0`, a release-pipeline rehearsal). The rest
-land in the approved phases.
+One repository, one package, one version.
+
+## Areas
+
+Internal boundaries within a single package, reached through subpath exports.
+
+| Subpath | Contains | May import |
+|---|---|---|
+| `@motionmind/workspace/contracts` | Vocabulary, types, route model, pure rules | *nothing* |
+| `@motionmind/workspace/client` | Framework-independent data operations | contracts |
+| `@motionmind/workspace/react` | Hooks and providers | contracts, client, react |
+| `@motionmind/workspace/companion` | Mentor and the floating Notebook panel | contracts, client, react |
+| `@motionmind/workspace/surfaces` | Full Workspace pages — **load lazily** | all of the above |
+
+The package root re-exports **contracts only**, so a bare import never pulls a renderer or a page
+into a consumer's entry chunk.
+
+Release 1 ships contracts, client and react as implementations, and companion and surfaces as their
+declared contracts. The companion arrives in Release 2 and the surfaces in Releases 3–4; declaring
+the boundaries now is what lets packaging, types and lazy loading be verified before any page
+depends on them.
 
 ## Non-negotiable boundaries
 
-- **`workspace-client` must never import React**, `react-dom`, `@tanstack/react-query`, or any
-  router. CI enforces this. React Query hooks belong in `workspace-react`.
-- **No package ever contains a Supabase URL, key, or singleton.** The authenticated client is
-  always injected by the host. The published-contents gate scans for credential material.
-- **Packages hold identifiers and display hints, never content.** The gateway re-reads every
-  referenced record under the caller's own JWT; authorisation is decided by RLS server-side.
-- **Every package must compile under BOTH consuming configurations** — Campus's `strict` +
+- **`contracts` and `client` must never import React**, React Query, a router, or a module-level
+  Supabase singleton. `scripts/check-boundaries.mjs` enforces this in CI and is negative-tested.
+- **No package code constructs a Supabase client.** The authenticated client is always injected by
+  the host, because the two applications build theirs differently.
+- **Identifiers and display hints travel; content does not.** The gateway re-reads every referenced
+  record under the caller's own JWT, so authorisation is decided by RLS server-side.
+- **Everything must compile under BOTH hosts' TypeScript settings** — Campus's `strict` +
   `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`, and Motion Mind's looser settings.
   Two CI gates, neither optional.
-- **Peer ranges must satisfy npm's resolver, not only bun's.** bun accepts peer mismatches npm
-  rejects, so a bun-only check would let Motion Mind's `npm install` break while Campus stays green.
+- **React 18 and React 19 are both supported.** Motion Mind runs 18, Campus runs 19. The peer range
+  is exercised in npm and bun at both majors rather than assumed.
 
-## Gates
+## Routes
 
+Workspace serves the same paths in both hosts: `/workspace`, `/workspace/learning`,
+`/workspace/notebook`, `/workspace/growth`, `/workspace/profile`, `/workspace/account`.
+`resolveLegacyWorkspacePath()` maps every `/dashboard…` URL to its Workspace equivalent, preserving
+the remaining path so old bookmarks land where they used to.
+
+Internal names are not renamed: database tables, RPCs, storage buckets and existing source
+directories keep names containing "dashboard". Renaming stable objects adds migration risk without
+changing anything a member sees.
+
+## Commands
+
+```bash
+npm run gates              # build · both tsconfigs · tests · boundaries · contents · publint · attw
+npm run verify:consumers   # npm × bun × React 18 × React 19, every subpath, exact version
+npm run verify:lazy        # proves the heavy area stays out of the entry chunk
 ```
-npm run gates
-# build · Campus tsconfig · Motion Mind tsconfig · tests
-#       · published contents · publint · attw
 
-node scripts/verify-consumers.mjs
-# exact-version install in npm AND bun, with a behaviour smoke test
-```
-
-`npm run gates` is the single command CI and the release job both run, so nothing can pass CI and
-then fail at publish time — or publish without having been checked. `publint` and `attw` are inside
-the gate, not manual steps.
-
-The release job additionally runs on Node 24 with npm >= 11.5.1 (asserted, and unit-tested), on a
-GitHub-hosted runner, with package-manager caching disabled.
-
-See `RELEASE.md` for publishing, the 24-hour release-age rule, rollback and deprecation.
+See `RELEASE.md` for publishing, the bootstrap procedure, the 24-hour release-age rule, and
+rollback.

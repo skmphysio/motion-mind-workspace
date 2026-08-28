@@ -1,7 +1,6 @@
 export type {
   AiChatContext,
   PersonalWorkspaceSurfaceContext,
-  WorkspaceHostId,
   WorkspaceSurfaceKind,
 } from "./context.js";
 export { conversationKey, toAiChatContext } from "./context.js";
@@ -15,3 +14,14 @@ export {
   MENTOR_CONTEXT_CAPS,
   QUICK_NOTE_TYPE,
 } from "./vocabulary.js";
+
+export type { WorkspaceArea } from "./navigation.js";
+export {
+  WORKSPACE_AREA_LABEL,
+  WORKSPACE_AREAS,
+  WORKSPACE_PREFIX,
+  resolveLegacyWorkspacePath,
+  workspacePath,
+} from "./navigation.js";
+
+export type { WorkspaceAccount, WorkspaceHost, WorkspaceHostId } from "./host.js";

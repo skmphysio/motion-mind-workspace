@@ -1,69 +1,100 @@
 /**
- * Exact-version consumer verification, in both package managers.
+ * Consumer verification: exact-version install, every subpath, both package
+ * managers, and BOTH SUPPORTED REACT MAJORS.
  *
- * Packs the real tarball and installs it as a pinned dependency in a throwaway
- * npm consumer and a throwaway bun consumer, then runs a behaviour smoke test
- * through each resolver. Proves: the exports map resolves, the types resolve,
- * the runtime behaves, and both managers agree on the same artefact.
- *
- * The 24-hour release-age guard is NOT exercised here — it applies to registry
- * publishes, and is verified against a real registry (see RELEASE.md).
+ * The React matrix is not ceremony. Motion Mind runs React 18 and Campus runs
+ * React 19, and this package declares a peer range spanning both. A range that
+ * is merely written down is not a range that resolves — npm and bun disagree
+ * about peer strictness (bun warns where npm fails), so the peers are exercised
+ * in both, at both majors, rather than assumed.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, copyFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, copyFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const pkgDir = resolve('packages/workspace-contracts');
-const version = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8')).version;
+const root = resolve('.');
+const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 
 const packed = JSON.parse(
-  (() => { const r = execFileSync('npm', ['pack', '--json'], { cwd: pkgDir, encoding: 'utf8' });
-           return r.slice(r.indexOf('[')); })()
+  (() => {
+    const r = execFileSync('npm', ['pack', '--json'], { cwd: root, encoding: 'utf8' });
+    return r.slice(r.indexOf('['));
+  })(),
 )[0].filename;
-const tarball = join(pkgDir, packed);
+const tarball = join(root, packed);
 
-const SMOKE = `
-import { buildContentPreview, toAiChatContext, conversationKey, MENTOR_CONTEXT_CAPS }
-  from '@motionmind/workspace-contracts';
-const out = buildContentPreview('x'.repeat(500));
-const campus = toAiChatContext({ host:'campus', surface:'campus_course', contextLabel:'c',
-  assistant:'campus_mentor', institutionId:'i1', offeringId:'o1' });
+const SUBPATH_PROBE = `
+import * as root from '@motionmind/workspace';
+import * as contracts from '@motionmind/workspace/contracts';
+import * as client from '@motionmind/workspace/client';
+import * as react from '@motionmind/workspace/react';
+import * as companion from '@motionmind/workspace/companion';
+import * as surfaces from '@motionmind/workspace/surfaces';
+
+const db = { from: () => ({}), rpc: async () => ({}) };
+const c = client.createWorkspaceClient({ database: db });
+
 const checks = [
-  ['preview length 280', out.length === 280],
-  ['preview ellipsis',   out.endsWith('\\u2026')],
-  ['campus context',     campus.campus_institution_id === 'i1' && campus.campus_offering_id === 'o1'],
-  ['conversation key',   conversationKey({ host:'campus', surface:'campus_course', contextLabel:'c',
-                            assistant:'campus_mentor', offeringId:'o1' }) === 'campus_mentor::o1'],
-  ['caps mirrored',      MENTOR_CONTEXT_CAPS.notebook === 3 && MENTOR_CONTEXT_CAPS.growth === 4],
+  ['root re-exports contracts',  root.PREVIEW_MAX_CHARS === 280],
+  ['contracts: workspace route', contracts.workspacePath('notebook') === '/workspace/notebook'],
+  ['contracts: legacy redirect', contracts.resolveLegacyWorkspacePath('/dashboard/growth/goal/1') === '/workspace/growth/goal/1'],
+  ['contracts: preview rule',    contracts.buildContentPreview('x'.repeat(500)).length === 280],
+  ['client: injected db kept',   c.database === db],
+  ['client: preview via client', c.notePreview('x'.repeat(500)).endsWith('\\u2026')],
+  ['react: provider exported',   typeof react.WorkspaceProvider === 'function'],
+  ['react: hooks exported',      typeof react.useWorkspaceClient === 'function'],
+  ['companion: mount rule',      typeof companion.COMPANION_MOUNT_RULE === 'string'],
+  ['surfaces: lazy areas',       surfaces.LAZY_REQUIRED_AREAS.includes('notebook')],
 ];
 let ok = true;
-for (const [n, p] of checks) { console.log('  ' + (p ? 'PASS' : 'FAIL') + '  ' + n); if (!p) ok = false; }
+for (const [name, pass] of checks) { console.log('      ' + (pass ? 'PASS' : 'FAIL') + '  ' + name); if (!pass) ok = false; }
 process.exit(ok ? 0 : 1);
 `;
 
-function consumer(manager) {
-  const dir = mkdtempSync(join(tmpdir(), `consumer-${manager}-`));
+function consumer(manager, reactVersion) {
+  const dir = mkdtempSync(join(tmpdir(), `c-${manager}-react${reactVersion}-`));
   copyFileSync(tarball, join(dir, packed));
-  writeFileSync(join(dir, 'package.json'), JSON.stringify({
-    name: `consumer-${manager}`, private: true, type: 'module', version: '0.0.0',
-    dependencies: { '@motionmind/workspace-contracts': `file:./${packed}` },
-  }, null, 2));
-  writeFileSync(join(dir, 'smoke.mjs'), SMOKE);
+  writeFileSync(
+    join(dir, 'package.json'),
+    JSON.stringify(
+      {
+        name: `consumer-${manager}-react${reactVersion}`,
+        private: true,
+        type: 'module',
+        version: '0.0.0',
+        dependencies: {
+          '@motionmind/workspace': `file:./${packed}`,
+          react: reactVersion,
+          'react-dom': reactVersion,
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(join(dir, 'probe.mjs'), SUBPATH_PROBE);
 
-  console.log(`\n--- ${manager} consumer ---`);
-  execFileSync(manager, ['install'], { cwd: dir, stdio: 'inherit' });
+  console.log(`\n  --- ${manager} · React ${reactVersion} ---`);
+  // npm fails on an unsatisfied peer; bun only warns. Running both is the point.
+  execFileSync(manager, ['install'], { cwd: dir, stdio: 'pipe' });
 
-  const installed = JSON.parse(readFileSync(
-    join(dir, 'node_modules/@motionmind/workspace-contracts/package.json'), 'utf8')).version;
+  const installed = JSON.parse(
+    readFileSync(join(dir, 'node_modules/@motionmind/workspace/package.json'), 'utf8'),
+  ).version;
   if (installed !== version) {
-    console.error(`  FAIL  expected exactly ${version}, got ${installed}`);
+    console.error(`      FAIL  expected exactly ${version}, got ${installed}`);
     process.exit(1);
   }
-  console.log(`  PASS  installed exactly ${installed}`);
-  execFileSync('node', ['smoke.mjs'], { cwd: dir, stdio: 'inherit' });
+  const reactInstalled = JSON.parse(
+    readFileSync(join(dir, 'node_modules/react/package.json'), 'utf8'),
+  ).version;
+  console.log(`      PASS  installed exactly ${installed} against react ${reactInstalled}`);
+  execFileSync('node', ['probe.mjs'], { cwd: dir, stdio: 'inherit' });
+  rmSync(dir, { recursive: true, force: true });
 }
 
-consumer('npm');
-consumer('bun');
-console.log('\nBoth consumers resolved the same artefact at the exact pinned version.');
+for (const manager of ['npm', 'bun']) {
+  for (const reactVersion of ['18.3.1', '19.2.0']) consumer(manager, reactVersion);
+}
+console.log('\n  All subpaths resolved at the exact pinned version, in npm and bun, on React 18 and 19.');

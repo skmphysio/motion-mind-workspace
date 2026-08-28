@@ -15,8 +15,8 @@
  * client asserts can widen it.
  */
 
-/** Which application is presenting the Workspace. Presentation only. */
-export type WorkspaceHostId = "motion_mind" | "campus";
+// WorkspaceHostId has ONE definition, in ./host.ts, imported here.
+import type { WorkspaceHostId } from "./host.js";
 
 /** What kind of place the member is standing in. */
 export type WorkspaceSurfaceKind =

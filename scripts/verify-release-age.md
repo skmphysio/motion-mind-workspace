@@ -30,12 +30,12 @@ minimumReleaseAge = 86400
 **Expected — and observed in PR-0:**
 
 ```
-error: No version matching "@motionmind/workspace-contracts" found for specifier "0.0.0-alpha.0"
+error: No version matching "@motionmind/workspace" found for specifier "0.0.0-alpha.0"
        (blocked by minimum-release-age: 86400 seconds)
-error: @motionmind/workspace-contracts@0.0.0-alpha.0 failed to resolve
+error: @motionmind/workspace@0.0.0-alpha.0 failed to resolve
 ```
 
-Adding `minimumReleaseAgeExcludes = ["@motionmind/workspace-contracts"]` lifts the block and the
+Adding `minimumReleaseAgeExcludes = ["@motionmind/workspace"]` lifts the block and the
 package installs at the exact pinned version. That is the emergency path only — see `RELEASE.md`.
 
 Notes from the PR-0 run:

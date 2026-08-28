@@ -1,0 +1,28 @@
+{
+  "files": [
+    "README.md",
+    "dist/client/index.d.ts",
+    "dist/client/index.js",
+    "dist/companion/index.d.ts",
+    "dist/companion/index.js",
+    "dist/contracts/context.d.ts",
+    "dist/contracts/context.js",
+    "dist/contracts/host.d.ts",
+    "dist/contracts/host.js",
+    "dist/contracts/index.d.ts",
+    "dist/contracts/index.js",
+    "dist/contracts/navigation.d.ts",
+    "dist/contracts/navigation.js",
+    "dist/contracts/preview.d.ts",
+    "dist/contracts/preview.js",
+    "dist/contracts/vocabulary.d.ts",
+    "dist/contracts/vocabulary.js",
+    "dist/index.d.ts",
+    "dist/index.js",
+    "dist/react/index.d.ts",
+    "dist/react/index.js",
+    "dist/surfaces/index.d.ts",
+    "dist/surfaces/index.js",
+    "package.json"
+  ]
+}

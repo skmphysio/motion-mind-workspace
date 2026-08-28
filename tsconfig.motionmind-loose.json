@@ -1,11 +1,18 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["packages/*/src/**/*"],
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
     "noEmit": true,
     "declaration": false,
     "strict": false,
     "strictNullChecks": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   }
 }
