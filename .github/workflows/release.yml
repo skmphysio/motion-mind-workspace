@@ -49,6 +49,16 @@ jobs:
       - name: Gates
         run: npm run gates
 
+      # The consumer matrix runs the same probe through npm AND bun, so the
+      # release job needs bun exactly as the CI consumers job does. A
+      # GitHub-hosted runner does NOT preinstall it: without this step the
+      # release died inside the matrix, after every other gate had passed and
+      # immediately before publishing. Same pinned action as CI.
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Assert bun
+        run: node scripts/assert-bun.mjs
+
       - name: Consumer verification (npm + bun, React 18 + 19)
         run: npm run verify:consumers
 

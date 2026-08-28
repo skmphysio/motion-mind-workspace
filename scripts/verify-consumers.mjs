@@ -12,6 +12,20 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, copyFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { detectBun, satisfiesBunMinimum, MINIMUM_BUN } from './assert-bun.mjs';
+
+// Fail fast and legibly. Without this the missing-bun case surfaced as a raw
+// spawn error with a byte-array dump, several hundred lines into a release.
+const bun = detectBun();
+if (bun === null || !satisfiesBunMinimum(bun)) {
+  console.error(
+    bun === null
+      ? '  FAIL  bun is not installed — the consumer matrix needs npm AND bun.\n' +
+        '        A GitHub-hosted runner does not provide it: add oven-sh/setup-bun@v2 to this job.'
+      : `  FAIL  bun ${bun} is older than the required ${MINIMUM_BUN.join('.')}`,
+  );
+  process.exit(1);
+}
 
 const root = resolve('.');
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;

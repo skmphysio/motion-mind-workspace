@@ -35,6 +35,10 @@ jobs:
           cache: npm
       - uses: oven-sh/setup-bun@v2
       - run: npm ci
+      # Assert bun before the matrix, so a runner without it fails with a clear
+      # message rather than an opaque spawn error deep inside the probe.
+      - name: Assert bun
+        run: node scripts/assert-bun.mjs
       - run: npm run build
       # Peer ranges must satisfy npm's resolver, not only bun's: bun warns where
       # npm fails, so a bun-only check would let Motion Mind's install break
