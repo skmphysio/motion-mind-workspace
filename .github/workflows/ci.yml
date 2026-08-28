@@ -9,43 +9,23 @@ permissions:
 
 jobs:
   gates:
-    name: Build, dual-tsconfig, tests, contents
+    name: Enforced gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Caching is fine here. It is disabled only in the release job.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
-      - name: Build
-        run: npm run build
 
-      # GATE 1 — the package must compile under Campus's exact production
-      # settings (strict + exactOptionalPropertyTypes + noUncheckedIndexedAccess
-      # + noPropertyAccessFromIndexSignature).
-      - name: Type-check under Campus settings
-        run: npm run typecheck:campus
-
-      # GATE 2 — and under Motion Mind's looser settings, which stay as they are
-      # for this programme. A package that only compiles one way is not shared.
-      - name: Type-check under Motion Mind settings
-        run: npm run typecheck:motionmind
-
-      - name: Tests
-        run: npm test
-
-      # GATE 3 — nothing unexpected reaches the registry.
-      - name: Published-contents gate
-        run: npm run check:contents
-
-      - name: publint
-        run: npx --yes publint@0.3.14 --pack npm
-        working-directory: packages/workspace-contracts
-
-      - name: Types resolve for consumers
-        run: npx --yes @arethetypeswrong/cli@latest --pack .
-        working-directory: packages/workspace-contracts
+      # The SAME command the release job runs, so nothing can pass CI and then
+      # fail at publish time — or worse, publish without having been checked.
+      #   build · Campus tsconfig · Motion Mind tsconfig · tests
+      #   · published contents · publint · attw
+      - name: Gates
+        run: npm run gates
 
   consumers:
     name: Exact-version install (npm + bun)
@@ -53,11 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: 24
+          cache: npm
       - uses: oven-sh/setup-bun@v2
-      # Installs the packed tarball in both package managers and runs the smoke
-      # test. Peer ranges must satisfy npm's stricter resolver, not only bun's —
-      # bun accepts peer mismatches npm rejects, so a bun-only check would let
-      # Motion Mind's npm install break while Campus stayed green.
-      - run: npm ci && npm run build
+      - run: npm ci
+      - run: npm run build
+      # Installs the packed tarball in both package managers and runs a
+      # behaviour smoke test through each resolver. Peer ranges must satisfy
+      # npm's stricter resolver, not only bun's — bun accepts peer mismatches
+      # npm rejects, so a bun-only check would let Motion Mind's npm install
+      # break while Campus stayed green.
       - run: node scripts/verify-consumers.mjs

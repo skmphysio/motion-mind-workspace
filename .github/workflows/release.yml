@@ -1,12 +1,15 @@
 name: Release
 
-# Publishing happens ONLY here, only from a tag, and only through OIDC trusted
-# publishing. There is no long-lived npm token in any developer environment.
+# Publishing happens ONLY here, only from a tag, on a GitHub-hosted runner.
 #
-# `publishConfig.provenance: true` means `npm publish` FAILS outside a supported
-# CI provider ("Automatic provenance generation not supported for provider:
-# null") — verified during the PR-0 rehearsal. That refusal is the protection,
-# so never pass --provenance=false here.
+# npm's trusted publishing (OIDC) requires a recent npm. The job therefore runs
+# Node 24 and asserts npm >= 11.5.1 before it does anything else, so an older
+# toolchain fails loudly rather than silently publishing without provenance.
+#
+# `publishConfig.provenance: true` additionally makes `npm publish` FAIL outside
+# a supported CI provider ("Automatic provenance generation not supported for
+# provider: null") — verified during the PR-0 rehearsal. That refusal is the
+# protection, so never pass --provenance=false here.
 
 on:
   push:
@@ -14,25 +17,38 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # required for provenance / trusted publishing
+  id-token: write   # required for OIDC trusted publishing and provenance
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
-    environment: npm-publish   # protected environment: reviewers configured in repo settings
+    runs-on: ubuntu-latest          # GitHub-hosted: required for trusted publishing
+    environment: npm-publish        # protected environment; reviewers set in repo settings
     steps:
       - uses: actions/checkout@v4
+
+      # Package-manager caching is deliberately DISABLED in the release job, so
+      # every publish resolves from the registry with the toolchain asserted
+      # below rather than from a restored cache.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
-          cache: npm
+
+      - name: Use an npm that supports trusted publishing
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
+      - name: Assert toolchain
+        run: NPM_VERSION="$(npm --version)" node scripts/assert-release-toolchain.mjs
 
       - run: npm ci
 
-      # The full gate set runs again on the exact tagged commit. A release never
-      # trusts an earlier green run.
-      - run: npm run gates
+      # The FULL enforced gate set runs again on the exact tagged commit —
+      # build, both tsconfigs, tests, published contents, publint, attw. A
+      # release never trusts an earlier green run.
+      - name: Gates
+        run: npm run gates
 
       - name: Verify the tag matches the package version
         run: |
@@ -41,10 +57,34 @@ jobs:
           if [ "$TAG" != "$VER" ]; then
             echo "Tag $TAG does not match package version $VER"; exit 1
           fi
+          echo "tag $TAG matches package version $VER"
 
-      - name: Publish with provenance
-        run: npm publish
+      # Trusted publishing: no NODE_AUTH_TOKEN. npm exchanges the job's OIDC
+      # identity for a short-lived credential. --access public is explicit
+      # because the scope is new; --provenance comes from publishConfig.
+      # BOOTSTRAP vs STEADY STATE — one step, two modes.
+      #
+      # Trusted publishing is configured in npm's PACKAGE settings, which do not
+      # exist until the package does. So the FIRST publish of a brand-new name
+      # may need a temporary, narrowly scoped granular access token, supplied as
+      # the NPM_BOOTSTRAP_TOKEN secret and used only from this job.
+      #
+      # After that first publish: configure OIDC trusted publishing on npm, then
+      # DELETE the secret and REVOKE the token. With the secret absent,
+      # NODE_AUTH_TOKEN is empty and npm falls back to the job's OIDC identity —
+      # so this same step becomes tokenless with no workflow edit. PR-0's second
+      # alpha exists to prove exactly that.
+      - name: Publish (provenance; OIDC once bootstrapped)
+        run: |
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "::warning::Publishing with the BOOTSTRAP TOKEN. Configure trusted publishing, then delete the NPM_BOOTSTRAP_TOKEN secret and revoke the token."
+          else
+            echo "Publishing via OIDC trusted publishing (no token present)."
+          fi
+          npm publish --access public
         working-directory: packages/workspace-contracts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
 
       - name: Release-age reminder
         run: |

@@ -32,8 +32,19 @@ land in the approved phases.
 ## Gates
 
 ```
-npm run gates   # build · Campus tsconfig · Motion Mind tsconfig · tests · published contents
-node scripts/verify-consumers.mjs   # exact-version install in npm AND bun, with a behaviour smoke test
+npm run gates
+# build · Campus tsconfig · Motion Mind tsconfig · tests
+#       · published contents · publint · attw
+
+node scripts/verify-consumers.mjs
+# exact-version install in npm AND bun, with a behaviour smoke test
 ```
+
+`npm run gates` is the single command CI and the release job both run, so nothing can pass CI and
+then fail at publish time — or publish without having been checked. `publint` and `attw` are inside
+the gate, not manual steps.
+
+The release job additionally runs on Node 24 with npm >= 11.5.1 (asserted, and unit-tested), on a
+GitHub-hosted runner, with package-manager caching disabled.
 
 See `RELEASE.md` for publishing, the 24-hour release-age rule, rollback and deprecation.
