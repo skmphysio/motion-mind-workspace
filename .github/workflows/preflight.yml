@@ -1,0 +1,88 @@
+name: Release preflight
+
+# Read-only. Publishes NOTHING. Run this by hand before tagging a release.
+#
+# The first publication of a package name is a one-shot: npm unpublish is
+# unavailable after 72 hours and harmful before it, so a wrong credential or a
+# wrong scope burns a version number that can never be reused. This job proves
+# the two things a release depends on and that a dry run cannot check:
+#
+#   1. which publish path `release.yml` would take, and
+#   2. whether the bootstrap credential — if present — actually authenticates.
+#
+# It deliberately runs in the SAME protected environment as the release job, so
+# it exercises the same gate. It never prints the token; only whether it exists
+# and, if so, which npm account it belongs to.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # same identity the release job requests
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Which publish path would a release take
+        id: mode
+        env:
+          BOOTSTRAP: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          SCOPE=${NAME%%/*}
+          echo "package    : $NAME@$VER"
+          echo "scope      : $SCOPE"
+          echo "expected tag: v$VER"
+          {
+            echo "name=$NAME"
+            echo "scope=$SCOPE"
+            echo "version=$VER"
+          } >> "$GITHUB_OUTPUT"
+          if [ -n "$BOOTSTRAP" ]; then
+            echo "NPM_BOOTSTRAP_TOKEN: PRESENT — release would take the BOOTSTRAP path"
+            echo "mode=bootstrap" >> "$GITHUB_OUTPUT"
+          else
+            echo "NPM_BOOTSTRAP_TOKEN: ABSENT — release would take the OIDC path,"
+            echo "  which requires trusted publishing already configured for $NAME."
+            echo "mode=oidc" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Catches a token that is expired, revoked, or belongs to the wrong
+      # account — before a tag exists, rather than after a version is spent.
+      - name: Is the bootstrap credential usable
+        if: steps.mode.outputs.mode == 'bootstrap'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+        run: |
+          if ! WHO=$(npm whoami 2>&1); then
+            echo "::error::NPM_BOOTSTRAP_TOKEN did not authenticate: $WHO"
+            exit 1
+          fi
+          echo "authenticated as npm account: $WHO"
+          echo "::notice::Token authenticates as $WHO. It must have read-and-write on the ${{ steps.mode.outputs.scope }} scope for the publish to succeed."
+
+      - name: Has this version already been published
+        run: |
+          NAME='${{ steps.mode.outputs.name }}'
+          VER='${{ steps.mode.outputs.version }}'
+          if npm view "$NAME@$VER" version >/dev/null 2>&1; then
+            echo "::error::$NAME@$VER already exists on the registry. Bump the version; a published version is never reused."
+            exit 1
+          fi
+          echo "$NAME@$VER is not on the registry — free to publish."
+
+      - name: Reminder
+        run: |
+          echo "Preflight only. Nothing was published."
+          echo "A release happens solely by pushing the tag v${{ steps.mode.outputs.version }}."
