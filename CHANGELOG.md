@@ -1,8 +1,17 @@
 # Changelog — @motionmindpkg/workspace
 
-### 0.0.0-alpha.1 — tokenless release proof (planned)
+### 0.0.0-alpha.2 — tokenless release proof (planned)
 Republished with no `NPM_BOOTSTRAP_TOKEN` present, proving the permanent OIDC trusted-publishing
-path. No source change from `alpha.0`.
+path. No source change from `alpha.1`.
+
+### 0.0.0-alpha.1 — first publication
+- Publish commands now pass an explicit `--tag`, derived from the version by
+  `scripts/resolve-dist-tag.mjs`. npm 11 refuses to publish a prerelease without one; npm 10
+  guessed `latest` and exited 0, so a rehearsal on npm 10 passed by doing the wrong thing.
+- The preflight installs the same npm the release job uses and rehearses the real publish command
+  under `--dry-run`, so an argument or manifest fault is caught before a tag is spent.
+- `v0.0.0-alpha.0` was tagged but never published: the release failed at the publish call. Nothing
+  under that version exists on the registry, and a published version is never reused.
 
 ### 0.0.0-alpha.0 — Release 1, task 1 (pending first publication)
 - Package name is `@motionmindpkg/workspace`; the scope matches the `motionmindpkg` npm

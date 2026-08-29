@@ -1,6 +1,6 @@
 {
   "name": "@motionmindpkg/workspace",
-  "version": "0.0.0-alpha.0",
+  "version": "0.0.0-alpha.1",
   "description": "The Motion Mind personal Workspace: shared contracts, data client, React bindings, companion and surfaces for Motion Mind and Motion Mind Campus.",
   "license": "UNLICENSED",
   "type": "module",

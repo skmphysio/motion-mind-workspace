@@ -62,6 +62,17 @@ jobs:
       - name: Consumer verification (npm + bun, React 18 + 19)
         run: npm run verify:consumers
 
+      # npm 11 REFUSES to publish a prerelease without an explicit --tag; npm 10
+      # guessed `latest` and exited 0. Deriving the tag from the version means
+      # there is no hand-maintained `--tag alpha` to forget at 1.0.0, and no way
+      # to put a prerelease where a plain `npm install` would find it.
+      - name: Resolve the dist-tag from the package version
+        id: disttag
+        run: |
+          TAG=$(node scripts/resolve-dist-tag.mjs)
+          echo "publishing under dist-tag: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Verify the tag matches the package version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
@@ -92,7 +103,7 @@ jobs:
       # very first publish of a new name cannot use OIDC.
       - name: Publish (bootstrap token, first publication only)
         if: steps.mode.outputs.mode == 'bootstrap'
-        run: npm publish --access public
+        run: npm publish --access public --tag '${{ steps.disttag.outputs.tag }}'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
 
@@ -100,7 +111,7 @@ jobs:
       # npm exchanges the job's OIDC identity for a short-lived credential.
       - name: Publish (OIDC trusted publishing, permanent path)
         if: steps.mode.outputs.mode == 'oidc'
-        run: npm publish --access public
+        run: npm publish --access public --tag '${{ steps.disttag.outputs.tag }}'
 
       - name: Release-age reminder
         run: |

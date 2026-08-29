@@ -39,6 +39,22 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      # The release job installs npm >= 11.5.1 for trusted publishing, and the
+      # two majors disagree exactly at the publish call: npm 10 silently
+      # publishes a prerelease to `latest` and exits 0, npm 11 refuses without an
+      # explicit --tag. A preflight running a different npm than the release
+      # cannot see that — which is how v0.0.0-alpha.0 passed every gate and then
+      # failed on the publish command itself.
+      - name: Use the same npm the release job uses
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
+      - name: Assert toolchain
+        run: NPM_VERSION="$(npm --version)" node scripts/assert-release-toolchain.mjs
+
+      - run: npm ci
+
       - name: Which publish path would a release take
         id: mode
         env:
@@ -96,6 +112,23 @@ jobs:
             exit 1
           fi
           echo "$NAME@$VER is not on the registry — free to publish."
+
+      - name: Resolve the dist-tag from the package version
+        id: disttag
+        run: |
+          TAG=$(node scripts/resolve-dist-tag.mjs)
+          echo "would publish under dist-tag: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      # The real publish command with --dry-run: same npm, same flags, same
+      # derived dist-tag. It validates the arguments, the manifest, the dist-tag
+      # and the packed contents, and publishes nothing.
+      #
+      # What it deliberately does NOT cover, so nobody reads more into a green
+      # run than it earns: npm skips both provenance signing and registry auth
+      # under --dry-run. The whoami step above is what covers auth.
+      - name: Rehearse the exact publish command
+        run: npm publish --dry-run --access public --tag '${{ steps.disttag.outputs.tag }}'
 
       - name: Reminder
         run: |
