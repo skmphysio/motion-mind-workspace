@@ -4,7 +4,7 @@
 Republished with no `NPM_BOOTSTRAP_TOKEN` present, proving the permanent OIDC trusted-publishing
 path. No source change from `alpha.1`.
 
-### 0.0.0-alpha.1 — first publication
+### 0.0.0-alpha.1 — first publication (published 2026-08-29, dist-tag `alpha`)
 - Publish commands now pass an explicit `--tag`, derived from the version by
   `scripts/resolve-dist-tag.mjs`. npm 11 refuses to publish a prerelease without one; npm 10
   guessed `latest` and exited 0, so a rehearsal on npm 10 passed by doing the wrong thing.

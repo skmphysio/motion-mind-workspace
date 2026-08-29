@@ -1,5 +1,23 @@
 # Verifying the 24-hour release-age rule against a real registry
 
+> **Confirmed against the real npmjs registry on 2026-08-29** with
+> `@motionmindpkg/workspace@0.0.0-alpha.1`, so the local verdaccio rehearsal below is no longer the
+> primary evidence. What the real run added:
+>
+> **Clear bun's cache first, or the test lies.** A tarball already in bun's cache installs happily
+> inside the 24-hour window — the guard is applied at resolution, not to a cache hit. Run
+> `bun pm cache rm` before the test. With a cold cache the block is total:
+>
+> | spec | result |
+> |---|---|
+> | `0.0.0-alpha.1` (exact pin) | blocked |
+> | `^0.0.0-alpha.1` (range) | blocked |
+> | `alpha` (dist-tag) | blocked |
+> | `latest` (dist-tag) | blocked |
+>
+> An exact pin is blocked just like a range, which is the case that matters — both applications pin
+> exactly.
+
 `scripts/verify-consumers.mjs` installs from a packed tarball, which deliberately does **not**
 exercise Campus's `minimumReleaseAge` guard — that applies only to registry publishes. To reproduce
 the registry behaviour (as done in PR-0):

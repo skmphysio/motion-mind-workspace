@@ -125,6 +125,19 @@ error: No version matching "@motionmindpkg/workspace" found for specifier "0.0.0
 `minimumReleaseAgeExcludes` is **emergency-only and requires owner confirmation**, per the comment
 already in Campus's `bunfig.toml`. See `scripts/verify-release-age.md` to reproduce the test.
 
+**The guard only sees a cold cache.** Confirmed against the real registry with
+`0.0.0-alpha.1`: with the tarball already in bun's cache the install *succeeds* inside the 24-hour
+window, and with `bun pm cache rm` first it is blocked for an exact pin, a caret range, and both the
+`alpha` and `latest` dist-tags. Anyone testing this locally after already installing the package will
+see it pass and conclude the guard is broken; it is not. CI resolves cold, which is the case that
+governs the Campus adoption PR.
+
+**A first publication always seeds `latest`, whatever `--tag` says.** `0.0.0-alpha.1` was published
+with `--tag alpha`, and the registry shows `{"alpha":"0.0.0-alpha.1","latest":"0.0.0-alpha.1"}`.
+npm points `latest` at the first version of a new package because there is nothing else for it to
+point at; `npm dist-tag` cannot remove `latest`, only move it. It moves to the first stable release.
+Both applications pin exact versions, so nothing resolves through `latest` in practice.
+
 ## Version pinning
 
 Both applications pin **exact** versions — `"@motionmindpkg/workspace": "1.2.3"`, never `^` or
