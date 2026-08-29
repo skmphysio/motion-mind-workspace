@@ -4,15 +4,21 @@ name: Release preflight
 #
 # The first publication of a package name is a one-shot: npm unpublish is
 # unavailable after 72 hours and harmful before it, so a wrong credential or a
-# wrong scope burns a version number that can never be reused. This job proves
-# the two things a release depends on and that a dry run cannot check:
+# blocked job burns a version number that can never be reused. `npm publish
+# --dry-run` cannot help — it never contacts the registry, so it cannot tell a
+# good credential from a bad one.
 #
-#   1. which publish path `release.yml` would take, and
-#   2. whether the bootstrap credential — if present — actually authenticates.
+# TWO INDEPENDENT JOBS, deliberately not chained, because a release needs both
+# and they fail for unrelated reasons:
 #
-# It deliberately runs in the SAME protected environment as the release job, so
-# it exercises the same gate. It never prints the token; only whether it exists
-# and, if so, which npm account it belongs to.
+#   credential       — no environment, so it sees repository-level secrets and
+#                      runs even when an environment gate would reject it.
+#   environment-gate — the same protected environment `release.yml` uses. If
+#                      this job cannot start, neither can a release, whatever
+#                      the credential says.
+#
+# Neither ever prints the token: only whether it exists, and which npm account
+# it belongs to — both already public facts about any successful release.
 
 on:
   workflow_dispatch:
@@ -22,9 +28,9 @@ permissions:
   id-token: write   # same identity the release job requests
 
 jobs:
-  preflight:
+  credential:
+    name: Credential
     runs-on: ubuntu-latest
-    environment: npm-publish
     steps:
       - uses: actions/checkout@v4
 
@@ -40,26 +46,26 @@ jobs:
         run: |
           NAME=$(node -p "require('./package.json').name")
           VER=$(node -p "require('./package.json').version")
-          SCOPE=${NAME%%/*}
-          echo "package    : $NAME@$VER"
-          echo "scope      : $SCOPE"
+          echo "package     : $NAME@$VER"
+          echo "scope       : ${NAME%%/*}"
           echo "expected tag: v$VER"
           {
             echo "name=$NAME"
-            echo "scope=$SCOPE"
+            echo "scope=${NAME%%/*}"
             echo "version=$VER"
           } >> "$GITHUB_OUTPUT"
           if [ -n "$BOOTSTRAP" ]; then
-            echo "NPM_BOOTSTRAP_TOKEN: PRESENT — release would take the BOOTSTRAP path"
+            echo "NPM_BOOTSTRAP_TOKEN: PRESENT as a repository secret — release takes the BOOTSTRAP path"
             echo "mode=bootstrap" >> "$GITHUB_OUTPUT"
           else
-            echo "NPM_BOOTSTRAP_TOKEN: ABSENT — release would take the OIDC path,"
-            echo "  which requires trusted publishing already configured for $NAME."
+            echo "NPM_BOOTSTRAP_TOKEN: not visible to a job without an environment."
+            echo "  Either it is absent, or it is scoped to an environment rather"
+            echo "  than the repository — the environment-gate job distinguishes these."
             echo "mode=oidc" >> "$GITHUB_OUTPUT"
           fi
 
-      # Catches a token that is expired, revoked, or belongs to the wrong
-      # account — before a tag exists, rather than after a version is spent.
+      # Catches a token that is expired, revoked, or on the wrong account —
+      # before a tag exists, rather than after a version is spent.
       - name: Is the bootstrap credential usable
         if: steps.mode.outputs.mode == 'bootstrap'
         env:
@@ -70,7 +76,7 @@ jobs:
             exit 1
           fi
           echo "authenticated as npm account: $WHO"
-          echo "::notice::Token authenticates as $WHO. It must have read-and-write on the ${{ steps.mode.outputs.scope }} scope for the publish to succeed."
+          echo "::notice::Token authenticates as $WHO and must hold read-and-write on ${{ steps.mode.outputs.scope }}."
 
       - name: Has this version already been published
         run: |
@@ -86,3 +92,23 @@ jobs:
         run: |
           echo "Preflight only. Nothing was published."
           echo "A release happens solely by pushing the tag v${{ steps.mode.outputs.version }}."
+
+  # Separate job on purpose: this is the only thing that proves a release job
+  # can actually START. An environment protection rule rejects a job before any
+  # runner is allocated — no steps, no logs, nothing to diagnose from — so it is
+  # worth discovering here rather than on the tag.
+  environment-gate:
+    name: Environment gate
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - name: The release job can enter npm-publish
+        env:
+          BOOTSTRAP: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+        run: |
+          echo "Entered the npm-publish environment; a release job would start."
+          if [ -n "$BOOTSTRAP" ]; then
+            echo "NPM_BOOTSTRAP_TOKEN: visible in this environment."
+          else
+            echo "NPM_BOOTSTRAP_TOKEN: NOT visible in this environment."
+          fi
