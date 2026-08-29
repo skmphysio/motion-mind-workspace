@@ -13,7 +13,12 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    # BOTH tag forms. `0.0.0-alpha.1` was pushed without the `v` and this
+    # workflow, listening only for `v*`, never fired: no run, no failure, no
+    # signal at all — the worst way for a release to not happen. The tag form is
+    # not a safety property; the version-match step below is, and it already
+    # strips a leading `v`.
+    tags: ['v[0-9]*', '[0-9]*']
 
 permissions:
   contents: read
