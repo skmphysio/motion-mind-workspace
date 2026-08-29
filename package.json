@@ -74,6 +74,7 @@
     "verify:lazy": "node scripts/verify-lazy-loading.mjs",
     "gates": "npm run build && npm run typecheck:campus && npm run typecheck:motionmind && npm run test && npm run check:boundaries && npm run check:contents && npm run check:publint && npm run check:types-resolve && npm run verify:type-resolution",
     "prepack": "npm run build",
+    "prepare": "npm run build",
     "verify:type-resolution": "node scripts/verify-type-resolution.mjs",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },

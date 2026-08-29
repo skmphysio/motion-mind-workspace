@@ -65,7 +65,13 @@ try {
   const pkgCopy = join(workdir, 'package-under-test');
   mkdirSync(pkgCopy, { recursive: true });
   cpSync(join(pkg, 'dist'), join(pkgCopy, 'dist'), { recursive: true });
-  cpSync(join(pkg, 'package.json'), join(pkgCopy, 'package.json'));
+  // Strip lifecycle scripts from the COPY. The probe measures the artefact that
+  // is already built; letting npm run `prepare` here would re-run `clean && tsc`
+  // inside the copy — wiping the dist under test (and the injected payload with
+  // it) and failing because the copy has no toolchain of its own.
+  const copiedManifest = JSON.parse(readFileSync(join(pkg, 'package.json'), 'utf8'));
+  delete copiedManifest.scripts;
+  writeFileSync(join(pkgCopy, 'package.json'), JSON.stringify(copiedManifest, null, 2));
   cpSync(join(pkg, 'README.md'), join(pkgCopy, 'README.md'));
 
   // Inject the weight into the COPY only.
