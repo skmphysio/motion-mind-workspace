@@ -71,11 +71,20 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
         run: |
-          if ! WHO=$(npm whoami 2>&1); then
-            echo "::error::NPM_BOOTSTRAP_TOKEN did not authenticate: $WHO"
+          # stdout and stderr kept apart on purpose: npm writes config warnings to
+          # stderr, and folding them into the account name would let a WRONG account
+          # hide inside a warning banner — on the one check whose whole job is to
+          # confirm the account is right.
+          if ! WHO=$(npm whoami 2>/tmp/whoami.err); then
+            echo "::error::NPM_BOOTSTRAP_TOKEN did not authenticate: $(cat /tmp/whoami.err)"
             exit 1
           fi
-          echo "authenticated as npm account: $WHO"
+          WHO=$(printf '%s' "$WHO" | tr -d '[:space:]')
+          if [ -s /tmp/whoami.err ]; then
+            echo "npm warnings (not part of the account name):"
+            sed 's/^/  /' /tmp/whoami.err
+          fi
+          echo "authenticated as npm account: [$WHO]"
           echo "::notice::Token authenticates as $WHO and must hold read-and-write on ${{ steps.mode.outputs.scope }}."
 
       - name: Has this version already been published
