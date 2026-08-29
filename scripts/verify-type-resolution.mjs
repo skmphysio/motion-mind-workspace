@@ -34,12 +34,12 @@ const HOSTS = {
 };
 
 const PROBE = `
-import * as root from '@motionmind/workspace';
-import { workspacePath, resolveLegacyWorkspacePath, type WorkspaceArea, type WorkspaceHost } from '@motionmind/workspace/contracts';
-import { createWorkspaceClient, type WorkspaceClient, type WorkspaceDatabase } from '@motionmind/workspace/client';
-import { WorkspaceProvider, useWorkspaceClient } from '@motionmind/workspace/react';
-import { COMPANION_MOUNT_RULE, type CompanionMountProps } from '@motionmind/workspace/companion';
-import { LAZY_REQUIRED_AREAS, type WorkspaceSurfaceProps } from '@motionmind/workspace/surfaces';
+import * as root from '@motionmindpkg/workspace';
+import { workspacePath, resolveLegacyWorkspacePath, type WorkspaceArea, type WorkspaceHost } from '@motionmindpkg/workspace/contracts';
+import { createWorkspaceClient, type WorkspaceClient, type WorkspaceDatabase } from '@motionmindpkg/workspace/client';
+import { WorkspaceProvider, useWorkspaceClient } from '@motionmindpkg/workspace/react';
+import { COMPANION_MOUNT_RULE, type CompanionMountProps } from '@motionmindpkg/workspace/companion';
+import { LAZY_REQUIRED_AREAS, type WorkspaceSurfaceProps } from '@motionmindpkg/workspace/surfaces';
 
 const area: WorkspaceArea = 'notebook';
 const db: WorkspaceDatabase = { from: () => ({}), rpc: async () => ({}) };
@@ -66,7 +66,7 @@ for (const [host, options] of Object.entries(HOSTS)) {
   mkdirSync(join(dir, 'node_modules'), { recursive: true });
   writeFileSync(join(dir, 'package.json'), JSON.stringify({
     name: `types-${host}`, private: true, type: 'module', version: '0.0.0',
-    dependencies: { '@motionmind/workspace': `file:${pkg}`, react: '^19.2.0' },
+    dependencies: { '@motionmindpkg/workspace': `file:${pkg}`, react: '^19.2.0' },
   }, null, 2));
   writeFileSync(join(dir, 'probe.ts'), PROBE);
   writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({

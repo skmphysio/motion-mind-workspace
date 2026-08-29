@@ -1,10 +1,12 @@
-# Changelog — @motionmind/workspace
+# Changelog — @motionmindpkg/workspace
 
 ### 0.0.0-alpha.1 — tokenless release proof (planned)
 Republished with no `NPM_BOOTSTRAP_TOKEN` present, proving the permanent OIDC trusted-publishing
 path. No source change from `alpha.0`.
 
 ### 0.0.0-alpha.0 — Release 1, task 1 (pending first publication)
+- Package name is `@motionmindpkg/workspace`; the scope matches the `motionmindpkg` npm
+  organisation.
 - Consolidated into a single package at the repository root with five subpath exports:
   `contracts`, `client`, `react`, `companion`, `surfaces`.
 - Contracts: surface and wire context, the Workspace route model and `/dashboard` compatibility

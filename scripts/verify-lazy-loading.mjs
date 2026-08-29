@@ -88,7 +88,7 @@ try {
     JSON.stringify(
       {
         name: 'lazy-probe', private: true, type: 'module', version: '0.0.0',
-        dependencies: { '@motionmind/workspace': `file:${pkgCopy}` },
+        dependencies: { '@motionmindpkg/workspace': `file:${pkgCopy}` },
       },
       null, 2,
     ),
@@ -104,11 +104,11 @@ try {
   writeFileSync(
     join(app, 'src/main.ts'),
     `
-import { workspacePath } from '@motionmind/workspace/contracts';
-import { COMPANION_MOUNT_RULE } from '@motionmind/workspace/companion';
+import { workspacePath } from '@motionmindpkg/workspace/contracts';
+import { COMPANION_MOUNT_RULE } from '@motionmindpkg/workspace/companion';
 document.getElementById('root')!.textContent = workspacePath('notebook') + COMPANION_MOUNT_RULE;
 export async function openWorkspace() {
-  const surfaces = await import('@motionmind/workspace/surfaces');
+  const surfaces = await import('@motionmindpkg/workspace/surfaces');
   return surfaces.LAZY_REQUIRED_AREAS.length;
 }
 (globalThis as Record<string, unknown>).openWorkspace = openWorkspace;

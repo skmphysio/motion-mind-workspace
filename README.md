@@ -1,4 +1,4 @@
-# @motionmind/workspace
+# @motionmindpkg/workspace
 
 The **Motion Mind Workspace** — the individual's own space in the ecosystem, built once and
 presented natively in both Motion Mind and Motion Mind Campus.
@@ -16,11 +16,11 @@ Internal boundaries within a single package, reached through subpath exports.
 
 | Subpath | Contains | May import |
 |---|---|---|
-| `@motionmind/workspace/contracts` | Vocabulary, types, route model, pure rules | *nothing* |
-| `@motionmind/workspace/client` | Framework-independent data operations | contracts |
-| `@motionmind/workspace/react` | Hooks and providers | contracts, client, react |
-| `@motionmind/workspace/companion` | Mentor and the floating Notebook panel | contracts, client, react |
-| `@motionmind/workspace/surfaces` | Full Workspace pages — **load lazily** | all of the above |
+| `@motionmindpkg/workspace/contracts` | Vocabulary, types, route model, pure rules | *nothing* |
+| `@motionmindpkg/workspace/client` | Framework-independent data operations | contracts |
+| `@motionmindpkg/workspace/react` | Hooks and providers | contracts, client, react |
+| `@motionmindpkg/workspace/companion` | Mentor and the floating Notebook panel | contracts, client, react |
+| `@motionmindpkg/workspace/surfaces` | Full Workspace pages — **load lazily** | all of the above |
 
 The package root re-exports **contracts only**, so a bare import never pulls a renderer or a page
 into a consumer's entry chunk.

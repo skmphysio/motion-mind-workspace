@@ -39,12 +39,12 @@ const packed = JSON.parse(
 const tarball = join(root, packed);
 
 const SUBPATH_PROBE = `
-import * as root from '@motionmind/workspace';
-import * as contracts from '@motionmind/workspace/contracts';
-import * as client from '@motionmind/workspace/client';
-import * as react from '@motionmind/workspace/react';
-import * as companion from '@motionmind/workspace/companion';
-import * as surfaces from '@motionmind/workspace/surfaces';
+import * as root from '@motionmindpkg/workspace';
+import * as contracts from '@motionmindpkg/workspace/contracts';
+import * as client from '@motionmindpkg/workspace/client';
+import * as react from '@motionmindpkg/workspace/react';
+import * as companion from '@motionmindpkg/workspace/companion';
+import * as surfaces from '@motionmindpkg/workspace/surfaces';
 
 const db = { from: () => ({}), rpc: async () => ({}) };
 const c = client.createWorkspaceClient({ database: db });
@@ -78,7 +78,7 @@ function consumer(manager, reactVersion) {
         type: 'module',
         version: '0.0.0',
         dependencies: {
-          '@motionmind/workspace': `file:./${packed}`,
+          '@motionmindpkg/workspace': `file:./${packed}`,
           react: reactVersion,
           'react-dom': reactVersion,
         },
@@ -94,7 +94,7 @@ function consumer(manager, reactVersion) {
   execFileSync(manager, ['install'], { cwd: dir, stdio: 'pipe' });
 
   const installed = JSON.parse(
-    readFileSync(join(dir, 'node_modules/@motionmind/workspace/package.json'), 'utf8'),
+    readFileSync(join(dir, 'node_modules/@motionmindpkg/workspace/package.json'), 'utf8'),
   ).version;
   if (installed !== version) {
     console.error(`      FAIL  expected exactly ${version}, got ${installed}`);

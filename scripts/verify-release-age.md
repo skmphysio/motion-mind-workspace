@@ -11,7 +11,7 @@ storage: ./storage
 auth: { htpasswd: { file: ./htpasswd, max_users: 1000 } }
 uplinks: { npmjs: { url: https://registry.npmjs.org/ } }
 packages:
-  '@motionmind/*': { access: $all, publish: $authenticated }
+  '@motionmindpkg/*': { access: $all, publish: $authenticated }
   '**':            { access: $all, proxy: npmjs }
 EOF
 npx verdaccio --config /tmp/vd/config.yaml --listen 4874 &
@@ -30,12 +30,12 @@ minimumReleaseAge = 86400
 **Expected — and observed in PR-0:**
 
 ```
-error: No version matching "@motionmind/workspace" found for specifier "0.0.0-alpha.0"
+error: No version matching "@motionmindpkg/workspace" found for specifier "0.0.0-alpha.0"
        (blocked by minimum-release-age: 86400 seconds)
-error: @motionmind/workspace@0.0.0-alpha.0 failed to resolve
+error: @motionmindpkg/workspace@0.0.0-alpha.0 failed to resolve
 ```
 
-Adding `minimumReleaseAgeExcludes = ["@motionmind/workspace"]` lifts the block and the
+Adding `minimumReleaseAgeExcludes = ["@motionmindpkg/workspace"]` lifts the block and the
 package installs at the exact pinned version. That is the emergency path only — see `RELEASE.md`.
 
 Notes from the PR-0 run:

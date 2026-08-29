@@ -1,6 +1,25 @@
-# Release process — `@motionmind/workspace`
+# Release process — `@motionmindpkg/workspace`
 
 One repository, one package, one version, one release workflow, one rollback target.
+
+## Publishing identity
+
+| | |
+|---|---|
+| npm scope | **`@motionmindpkg`** |
+| npm organisation | **`motionmindpkg`** |
+| npm account | **`motionmindskm`** |
+| Source repository | `skmphysio/motion-mind-workspace` |
+| Publishing workflow | `.github/workflows/release.yml` |
+
+The scope is `@motionmindpkg` and not `@motionmind`: on npm a scope must match a username or an
+organisation name, and `motionmindpkg` is the organisation that exists. The scope appears in every
+import line in both applications, so it is not changed casually — a change means a republish under
+a new name and an edit to every consuming file.
+
+**The publish credential belongs to this repository only.** Neither Motion Mind nor Campus publishes
+anything, so neither needs `NPM_BOOTSTRAP_TOKEN`. A publish-capable token stored in an application
+repository is reachable by every workflow in it for no benefit.
 
 ## Toolchain
 
@@ -17,13 +36,13 @@ fresh. Permissions are exactly `contents: read` and `id-token: write`.
 Trusted publishing is configured in npm's **package** settings, and those do not exist until the
 package does. The first publish therefore cannot use OIDC.
 
-**The bootstrap token cannot be restricted to `@motionmind/workspace`, because that package does not
-yet exist.** Restrict it as tightly as npm allows at that moment:
+**The bootstrap token cannot be restricted to `@motionmindpkg/workspace`, because that
+package does not yet exist.** Restrict it as tightly as npm allows at that moment:
 
 | Setting | Value |
 |---|---|
 | Type | **Granular access token** (never a classic automation token) |
-| Packages and scopes | **`@motionmind` scope only** — the claimed scope, nothing wider |
+| Packages and scopes | **`@motionmindpkg` scope only** — the claimed scope, nothing wider |
 | Permission | **Read and write** on packages |
 | Bypass 2FA | **Enabled** — required for an unattended CI publish |
 | Organizations | **No organization administration permission** |
@@ -36,7 +55,7 @@ Then:
 2. Tag `v0.0.0-alpha.0`. The workflow detects the secret, takes the **bootstrap** publish path, and
    prints a warning naming the follow-up actions.
 3. **Immediately** configure **OIDC trusted publishing** in the npm package settings, linking
-   `@motionmind/workspace` to `skmphysio/motion-mind-workspace` and `release.yml`.
+   `@motionmindpkg/workspace` to `skmphysio/motion-mind-workspace` and `release.yml`.
 4. **Delete the `NPM_BOOTSTRAP_TOKEN` secret AND revoke the token on npm.** Both — deleting the
    secret alone leaves a live credential.
 5. Tag `v0.0.0-alpha.1`. With the secret gone the workflow takes the **OIDC** path, proving the
@@ -96,7 +115,7 @@ Campus's `bunfig.toml` sets `minimumReleaseAge = 86400`. A freshly published ver
 `bun install` **fails to resolve it**:
 
 ```
-error: No version matching "@motionmind/workspace" found for specifier "0.0.0-alpha.0"
+error: No version matching "@motionmindpkg/workspace" found for specifier "0.0.0-alpha.0"
        (blocked by minimum-release-age: 86400 seconds)
 ```
 
@@ -108,9 +127,10 @@ already in Campus's `bunfig.toml`. See `scripts/verify-release-age.md` to reprod
 
 ## Version pinning
 
-Both applications pin **exact** versions — `"@motionmind/workspace": "1.2.3"`, never `^` or `~`.
+Both applications pin **exact** versions — `"@motionmindpkg/workspace": "1.2.3"`, never `^` or
+`~`.
 Lockfiles are committed; CI installs with `--frozen-lockfile`. Renovate and Dependabot must not
-auto-bump `@motionmind/workspace`: a version move is deliberate, reviewed, and paired with the
+auto-bump `@motionmindpkg/workspace`: a version move is deliberate, reviewed, and paired with the
 parity gate it satisfies.
 
 **Peer ranges must satisfy npm's resolver, not only bun's.** bun warns where npm fails, so a
@@ -123,7 +143,8 @@ exercises both managers at both React majors for exactly this reason.
 code change, no republish. One package means one version to move.
 
 - **Never `npm unpublish`.** It breaks consumers and is unavailable after 72 hours.
-- Mark a bad version with `npm deprecate '@motionmind/workspace@<version>' 'Use <good>: <reason>'`.
+- Mark a bad version with
+  `npm deprecate '@motionmindpkg/workspace@<version>' 'Use <good>: <reason>'`.
 - Every deletion PR in either application records the pre-deletion commit SHA and the exact package
   version that replaced it.
 

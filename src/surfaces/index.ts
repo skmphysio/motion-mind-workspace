@@ -9,7 +9,7 @@
  *
  * This area is designed to be imported lazily:
  *
- *     const Workspace = lazy(() => import('@motionmind/workspace/surfaces'));
+ *     const Workspace = lazy(() => import('@motionmindpkg/workspace/surfaces'));
  *
  * Verified in Release 1: a consumer that eagerly imports `contracts` and
  * `companion` and lazily imports this area keeps this area's code out of the
